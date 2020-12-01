@@ -2,8 +2,12 @@ use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error, ErrorKind};
 use std::path::Path;
+use std::str::FromStr;
 
-fn read_numbers(file: &str) -> Result<Vec<i64>, Error> {
+fn read_numbers<E, T: FromStr<Err = E>>(file: &str) -> Result<Vec<T>, Error>
+where
+    E: 'static + std::error::Error + Send + Sync,
+{
     let path = Path::new(file);
     let io = File::open(path)?;
     let br = BufReader::new(io);
