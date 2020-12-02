@@ -1,23 +1,9 @@
+use adventofcode2020::prelude::*;
 use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::{BufRead, BufReader, Error, ErrorKind};
-use std::path::Path;
-use std::str::FromStr;
+use std::io::ErrorKind;
 
-fn read_numbers<E, T: FromStr<Err = E>>(file: &str) -> Result<Vec<T>, Error>
-where
-    E: 'static + std::error::Error + Send + Sync,
-{
-    let path = Path::new(file);
-    let io = File::open(path)?;
-    let br = BufReader::new(io);
-    br.lines()
-        .map(|line| line.and_then(|v| v.parse().map_err(|e| Error::new(ErrorKind::InvalidData, e))))
-        .collect()
-}
-
-fn main() -> Result<(), Error> {
-    let numbers = read_numbers("data/1.txt")?;
+fn main() -> Result<(), anyhow::Error> {
+    let numbers = read_file("data/1.txt")?;
     let set: HashSet<i64> = numbers.iter().cloned().collect();
 
     let sums: HashMap<i64, (i64, i64)> = numbers
