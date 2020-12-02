@@ -38,7 +38,38 @@ impl FromStr for Line {
 fn main() -> Result<()> {
     let data = read_file::<_, Line>("data/2.txt")?;
 
-    dbg!(data);
+    let count = data
+        .iter()
+        .filter(|l| {
+            let p = &l.policy;
+            let c = l
+                .password
+                .as_bytes()
+                .iter()
+                .filter(|c| **c == p.character)
+                .count();
+
+            c >= p.min && c <= p.max
+        })
+        .count();
+
+    println!("Count: {}", count);
+
+    let count = data
+        .iter()
+        .filter(|l| {
+            let p = &l.policy;
+            let b = l.password.as_bytes();
+
+            if p.min <= 0 || p.max > b.len() {
+                return false;
+            }
+
+            (b[p.min - 1] == p.character) != (b[p.max - 1] == p.character)
+        })
+        .count();
+
+    println!("Count: {}", count);
 
     Ok(())
 }
