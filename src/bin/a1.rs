@@ -1,8 +1,7 @@
 use adventofcode2020::prelude::*;
 use std::collections::{HashMap, HashSet};
-use std::io::ErrorKind;
 
-fn main() -> Result<(), anyhow::Error> {
+fn main() -> Result<()> {
     let numbers = read_file("data/1.txt")?;
     let set: HashSet<i64> = numbers.iter().cloned().collect();
 
