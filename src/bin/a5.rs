@@ -14,22 +14,16 @@ fn walk(input: &[u8]) -> i32 {
     final_range.0
 }
 
-fn process(input: &[u8]) -> i32 {
-    let (row, col) = input.split_at(7);
-
-    walk(row) * (1 << col.len()) + walk(col)
-}
-
 fn main() -> Result<()> {
     let data = read_file::<_, String>("data/5.txt")?;
 
-    let part1 = data.iter().map(|line| process(line.as_bytes())).max();
+    let part1 = data.iter().map(|line| walk(line.as_bytes())).max();
 
     println!("{:?}", part1);
 
     let mut seats = data
         .iter()
-        .map(|line| process(line.as_bytes()))
+        .map(|line| walk(line.as_bytes()))
         .collect::<Vec<i32>>();
     seats.sort();
 
