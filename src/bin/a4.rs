@@ -13,7 +13,7 @@ impl PassportData {
             .into_iter()
             .map(|s| s.to_owned())
             .collect::<Vec<_>>();
-        let optional_fields = vec!["cid"];
+        let _optional_fields = vec!["cid"];
         required_keys.iter().all(|k| self.0.contains_key(k))
     }
 
