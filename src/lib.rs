@@ -9,6 +9,7 @@ pub enum Error {
     Io(std::io::Error),
     ParseInt(std::num::ParseIntError),
     ParseFloat(std::num::ParseFloatError),
+    General(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -43,6 +44,7 @@ impl Display for Error {
             Error::Io(e) => f.write_fmt(format_args!("Io: {}", e)),
             Error::ParseInt(e) => f.write_fmt(format_args!("Parse: {}", e)),
             Error::ParseFloat(e) => f.write_fmt(format_args!("Parse: {}", e)),
+            Error::General(s) => f.write_fmt(format_args!("General: {}", s)),
         }
     }
 }
