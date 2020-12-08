@@ -1,6 +1,5 @@
 use adventofcode2020::prelude::*;
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::str::FromStr;
 
 struct Rule {
@@ -74,6 +73,30 @@ fn dfs(
         })
 }
 
+fn dfs_part2(
+    rules_by_color: &HashMap<String, Vec<(u32, String)>>,
+    current_color: &str,
+    depth: u32,
+) -> Result<u64> {
+    if depth > 1000 {
+        return Err(Error::General("Exceeded max depth".into()));
+    }
+
+    let rules = rules_by_color
+        .get(current_color)
+        .ok_or_else(|| Error::General(format!("Color {} not found in rules", &current_color)))?;
+
+    rules
+        .iter()
+        .try_fold(1_u64, |mut state, (amount, color)| -> Result<u64> {
+            let count = dfs_part2(rules_by_color, &color, depth + 1)?;
+            if count > 0 {
+                state += (*amount as u64) * count;
+            }
+            Ok(state)
+        })
+}
+
 fn main() -> Result<()> {
     let rules: Vec<Rule> = read_file("data/7.txt")?;
 
@@ -93,6 +116,10 @@ fn main() -> Result<()> {
         })?;
 
     println!("{}", part1);
+
+    let part2 = dfs_part2(&rules_by_color, "shiny gold", 0)? - 1;
+
+    println!("{}", part2);
 
     Ok(())
 }
