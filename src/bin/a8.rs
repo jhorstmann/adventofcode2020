@@ -185,5 +185,30 @@ fn main() -> Result<()> {
             Ok(())
         })?;
 
+    // turns out the above was overkill, could have just tried marking every nop or jmp as corrupt
+
+    instructions
+        .iter()
+        .enumerate()
+        .filter(|(_ip, insn)| match insn {
+            Instruction::Acc(_) => false,
+            Instruction::Jmp(_) | Instruction::Nop(_) => true,
+        })
+        .try_for_each(|(ip, _insn)| -> Result<()> {
+            cpu2.reset();
+            cpu2.mark_corrupted(ip);
+
+            match cpu2.run() {
+                Ok(acc) => {
+                    println!("{}", acc);
+                }
+                Err(CPUError::InfiniteLoop(_)) => {
+                    // still an infinite loop, ignore
+                }
+                Err(e) => return Err(Error::General(format!("{:?}", e))),
+            }
+
+            Ok(())
+        })?;
     Ok(())
 }
