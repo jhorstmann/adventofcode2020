@@ -66,7 +66,7 @@ impl CPU {
         self.ip = 0;
         self.acc = 0;
         self.counters.iter_mut().for_each(|c| *c = 0);
-        self.corrupted_insn = 0;
+        self.corrupted_insn = usize::MAX;
     }
 
     pub fn mark_corrupted(&mut self, ip: usize) {
@@ -152,7 +152,7 @@ fn main() -> Result<()> {
         }
     }
 
-    let mut cpu2 = CPU::new(instructions.clone());
+    let counters = cpu.counters.clone();
 
     instructions
         .iter()
@@ -168,11 +168,12 @@ fn main() -> Result<()> {
                 terminating_mask[target_if_jmp / 8] & (1 << (target_if_jmp % 8)) != 0
             }
         })
+        .filter(|(ip, _insn)| counters[*ip as usize] > 0) // only try actually executed instructions
         .try_for_each(|(ip, _insn)| -> Result<()> {
-            cpu2.reset();
-            cpu2.mark_corrupted(ip);
+            cpu.reset();
+            cpu.mark_corrupted(ip);
 
-            match cpu2.run() {
+            match cpu.run() {
                 Ok(acc) => {
                     println!("{}", acc);
                 }
@@ -195,10 +196,10 @@ fn main() -> Result<()> {
             Instruction::Jmp(_) | Instruction::Nop(_) => true,
         })
         .try_for_each(|(ip, _insn)| -> Result<()> {
-            cpu2.reset();
-            cpu2.mark_corrupted(ip);
+            cpu.reset();
+            cpu.mark_corrupted(ip);
 
-            match cpu2.run() {
+            match cpu.run() {
                 Ok(acc) => {
                     println!("{}", acc);
                 }
