@@ -92,7 +92,7 @@ static DIRECTIONS: [(i32, i32); 8] = [
     (1, 1),
 ];
 
-fn step(area: &Area) -> Area {
+fn step(area: &Area, min_occupied: u64, part2: bool) -> Area {
     let rows = &area.0;
     let mut result = Vec::with_capacity(rows.len());
     for y in 0..rows.len() {
@@ -104,16 +104,27 @@ fn step(area: &Area) -> Area {
             let current = area.get(x as i32, y as i32).unwrap();
             let count = DIRECTIONS
                 .iter()
-                .map(|(dx, dy)| area.get(x as i32 + dx, y as i32 + dy))
-                .map(|seat| match seat {
-                    Some(Seat::Occupied) => 1,
-                    _ => 0,
+                .map(|(dx, dy)| {
+                    let mut i = 1;
+                    loop {
+                        match area.get(x as i32 + i * dx, y as i32 + i * dy) {
+                            None => break 0,
+                            Some(Seat::Occupied) => break 1,
+                            Some(Seat::Empty) => break 0,
+                            _ => {}
+                        }
+                        if !part2 {
+                            break 0;
+                        }
+
+                        i += 1;
+                    }
                 })
                 .sum();
 
             let update = match (&current, count) {
                 (Seat::Empty, 0) => Seat::Occupied,
-                (Seat::Occupied, 4..=8) => Seat::Empty,
+                (Seat::Occupied, c) if c >= min_occupied => Seat::Empty,
                 _ => current,
             };
 
@@ -127,7 +138,22 @@ fn step(area: &Area) -> Area {
 fn part1(mut area: Area) -> u64 {
     loop {
         //println!("{}", area);
-        let new_area = step(&area);
+        let new_area = step(&area, 4, false);
+
+        if new_area == area {
+            break;
+        }
+
+        area = new_area;
+    }
+
+    area.count_occupied()
+}
+
+fn part2(mut area: Area) -> u64 {
+    loop {
+        //println!("{}", area);
+        let new_area = step(&area, 5, true);
 
         if new_area == area {
             break;
@@ -142,9 +168,11 @@ fn part1(mut area: Area) -> u64 {
 fn main() -> Result<()> {
     let area = Area(read_file("data/11.txt")?);
 
-    let num_occupied = part1(area.clone());
+    let part1 = part1(area.clone());
+    println!("{}", part1);
 
-    println!("{}", num_occupied);
+    let part2 = part2(area.clone());
+    println!("{}", part2);
 
     Ok(())
 }
