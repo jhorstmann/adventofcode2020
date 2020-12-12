@@ -2,13 +2,14 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
-use std::str::FromStr;
+use std::str::{FromStr, Utf8Error};
 
 #[derive(Debug)]
 pub enum Error {
     Io(std::io::Error),
     ParseInt(std::num::ParseIntError),
     ParseFloat(std::num::ParseFloatError),
+    ParseUtf8(Utf8Error),
     General(String),
 }
 
@@ -32,6 +33,12 @@ impl From<std::num::ParseFloatError> for Error {
     }
 }
 
+impl From<Utf8Error> for Error {
+    fn from(e: Utf8Error) -> Self {
+        Error::ParseUtf8(e)
+    }
+}
+
 impl From<std::convert::Infallible> for Error {
     fn from(_e: std::convert::Infallible) -> Self {
         panic!("Infallible error should never occur")
@@ -44,6 +51,7 @@ impl Display for Error {
             Error::Io(e) => f.write_fmt(format_args!("Io: {}", e)),
             Error::ParseInt(e) => f.write_fmt(format_args!("Parse: {}", e)),
             Error::ParseFloat(e) => f.write_fmt(format_args!("Parse: {}", e)),
+            Error::ParseUtf8(e) => f.write_fmt(format_args!("Parse: {}", e)),
             Error::General(s) => f.write_fmt(format_args!("General: {}", s)),
         }
     }
