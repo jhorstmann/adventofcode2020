@@ -56,13 +56,8 @@ fn run(actions: &[Action], vx: i64, vy: i64) -> Result<u64> {
     }
 
     impl State {
-        fn new(ax: i64, ay: i64, vx: i64, vy: i64) -> Self {
-            Self {
-                sx: ax,
-                sy: ay,
-                vx,
-                vy,
-            }
+        fn new(sx: i64, sy: i64, vx: i64, vy: i64) -> Self {
+            Self { sx, sy, vx, vy }
         }
     }
 
