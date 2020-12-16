@@ -7,6 +7,12 @@ struct FieldRule {
     ranges: Vec<Range>,
 }
 
+impl FieldRule {
+    fn is_valid(&self, value: u64) -> bool {
+        self.ranges.iter().any(|r| value >= r.0 && value <= r.1)
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Range(u64, u64);
 
@@ -75,7 +81,7 @@ impl FromStr for Ticket {
 }
 
 fn main() -> Result<()> {
-    let lines: Vec<String> = read_file("data/16_example.txt")?;
+    let lines: Vec<String> = read_file("data/16.txt")?;
     let mut split = lines.split(|line| line.is_empty());
     let first = split
         .next()
@@ -97,7 +103,7 @@ fn main() -> Result<()> {
     let tickets = split
         .next()
         .ok_or_else(|| Error::General("Missing my ticket in input".into()))?;
-    let tickets =
+    let tickets: Vec<Ticket> =
         tickets[1..]
             .into_iter()
             .try_fold(vec![], |mut vec, s| -> Result<Vec<Ticket>> {
@@ -105,9 +111,31 @@ fn main() -> Result<()> {
                 Ok(vec)
             })?;
 
-    dbg!(&fields);
-    dbg!(&my_ticket);
-    dbg!(&tickets);
+    //dbg!(&fields);
+    //dbg!(&my_ticket);
+    //dbg!(&tickets);
+
+    let part1: u64 = tickets
+        .iter()
+        .flat_map(|t| t.values.iter())
+        .filter(|value| !fields.iter().any(|f| f.is_valid(**value)))
+        .sum();
+
+    println!("{}", part1);
+
+    let mut valid_tickets: Vec<Ticket> = tickets
+        .into_iter()
+        .filter(|t| {
+            t.values
+                .iter()
+                .all(|value| fields.iter().any(|f| f.is_valid(*value)))
+        })
+        .collect();
+    valid_tickets.push(my_ticket);
+
+    dbg!(&valid_tickets);
+
+    //fields.iter().map(|field| tickets.iter().flat_map(|t| t.values.iter().enumerate())).
 
     Ok(())
 }
