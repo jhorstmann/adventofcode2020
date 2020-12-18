@@ -1,47 +1,157 @@
 use adventofcode2020::prelude::*;
+use std::collections::HashSet;
 
+fn part1(lines: &[String]) -> usize {
+    let mut cube: HashSet<(i32, i32, i32)> = HashSet::default();
 
-
-fn main() -> Result<()> {
-    let lines : Vec<String> = read_file("data/17.txt")?;
-
-    // slice has width and height 8, leave another 8 in each direction for simulation
-    const off : usize =  8;
-    const len: usize = 8 +2*off;
-
-    assert_eq!(lines.len(),8);
-    let mut slice: Vec<Vec<bool>> = Vec::default();
-    (0..off).for_each(|_| slice.push(vec![false; len]));
-    lines.iter().for_each(|l| {
-        assert_eq!(l.len(), 8);
-        let mut row = Vec::with_capacity(len);
-        (0..off).for_each(|_| row.push(false));
-        l.as_bytes().iter().for_each(|b| row.push(*b == b'#')).collect();
-        (0..off).for_each(|_| row.push(false));
-        slice.push(row);
+    lines.iter().enumerate().for_each(|(y, l)| {
+        l.as_bytes().iter().enumerate().for_each(|(x, b)| {
+            if *b == b'#' {
+                cube.insert((x as i32, y as i32, 0));
+            }
+        })
     });
-    (0..off).for_each(|_| slice.push(vec![false; len]));
 
+    let mut directions: Vec<(i32, i32, i32)> = Vec::with_capacity(26);
+    (-1..=1).for_each(|z| {
+        (-1..=1).for_each(|y| {
+            (-1..=1).for_each(|x| {
+                if x != 0 || y != 0 || z != 0 {
+                    directions.push((x, y, z))
+                }
+            })
+        })
+    });
 
-    let empty_slice : Vec<Vec<bool>> = (0..len).map(|_| {
-        vec![false; len]
-    }).collect();
+    assert_eq!(26, directions.len());
 
-    let mut cube: Vec<Vec<Vec<bool>>> = Vec::with_capacity(off);
-    (0..off).for_each(|i| { cube.push(empty_slice.clone()); });
-    cube.push(slice);
-    (0..off).for_each(|i| { cube.push(empty_slice.clone()); });
-
-
-    let mut directions :Vec<(i32,i32,i32)> = Vec::with_capacity(26);
-    (-1..=1).for_each(|z| (-1..=1).for_each(|y| (-1..=1).for_each(|x| if x!=0 || y!= 0 || z!= 0{ directions.push((x,y,z))})));
-
-    dbg!(&directions);
+    let min = -8;
+    let max = 8 + 8 + 1;
 
     (0..6).for_each(|_| {
+        let mut new_cube: HashSet<(i32, i32, i32)> = HashSet::default();
+        (min..max).for_each(|z| {
+            (min..max).for_each(|y| {
+                (min..max).for_each(|x| {
+                    let neighbors = directions
+                        .iter()
+                        .filter(|(dx, dy, dz)| cube.contains(&(x + dx, y + dy, z + dz)))
+                        .count();
+                    let new_active = if cube.contains(&(x, y, z)) {
+                        if neighbors == 2 || neighbors == 3 {
+                            true
+                        } else {
+                            false
+                        }
+                    } else {
+                        if neighbors == 3 {
+                            true
+                        } else {
+                            false
+                        }
+                    };
+                    if new_active {
+                        new_cube.insert((x, y, z));
+                    }
+                })
+            })
+        });
+        /*
+        (min..max).for_each(|z| {
+            (min..max).for_each(|y| {
+                (min..max).for_each(|x| {
+                    if new_cube.contains(&(x, y, z)) {
+                        print!("#");
+                    } else {
+                        print!(".")
+                    }
+                });
+                println!();
+            });
+            println!();
+        });
 
+         */
 
+        cube = new_cube;
     });
+
+    cube.len()
+}
+
+fn part2(lines: &[String]) -> usize {
+    let mut cube: HashSet<(i32, i32, i32, i32)> = HashSet::default();
+
+    lines.iter().enumerate().for_each(|(y, l)| {
+        l.as_bytes().iter().enumerate().for_each(|(x, b)| {
+            if *b == b'#' {
+                cube.insert((x as i32, y as i32, 0, 0));
+            }
+        })
+    });
+
+    let mut directions: Vec<(i32, i32, i32, i32)> = Vec::with_capacity(80);
+    (-1..=1).for_each(|w| {
+        (-1..=1).for_each(|z| {
+            (-1..=1).for_each(|y| {
+                (-1..=1).for_each(|x| {
+                    if x != 0 || y != 0 || z != 0 || w != 0 {
+                        directions.push((x, y, z, w))
+                    }
+                })
+            })
+        })
+    });
+
+    assert_eq!(80, directions.len());
+
+    let min = -8;
+    let max = 8 + 8 + 1;
+
+    (0..6).for_each(|_| {
+        let mut new_cube: HashSet<(i32, i32, i32, i32)> = HashSet::default();
+        (min..max).for_each(|w| {
+            (min..max).for_each(|z| {
+                (min..max).for_each(|y| {
+                    (min..max).for_each(|x| {
+                        let neighbors = directions
+                            .iter()
+                            .filter(|(dx, dy, dz, dw)| {
+                                cube.contains(&(x + dx, y + dy, z + dz, w + dw))
+                            })
+                            .count();
+                        let new_active = if cube.contains(&(x, y, z, w)) {
+                            if neighbors == 2 || neighbors == 3 {
+                                true
+                            } else {
+                                false
+                            }
+                        } else {
+                            if neighbors == 3 {
+                                true
+                            } else {
+                                false
+                            }
+                        };
+                        if new_active {
+                            new_cube.insert((x, y, z, w));
+                        }
+                    })
+                })
+            })
+        });
+
+        cube = new_cube;
+    });
+
+    cube.len()
+}
+
+fn main() -> Result<()> {
+    let lines: Vec<String> = read_file("data/17.txt")?;
+
+    println!("{}", part1(&lines));
+    println!("{}", part2(&lines));
 
     Ok(())
 }
