@@ -1,5 +1,5 @@
 use adventofcode2020::prelude::*;
-use regex_automata::{RegexBuilder, DFA};
+use regex_automata::{Regex, RegexBuilder, DFA};
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -63,20 +63,18 @@ impl FromStr for Pattern {
                 },
             )?;
 
-            if alternatives.len() > 1 {
-                Ok(Pattern::Alternatives(alternatives))
+            if alternatives.len() == 1 {
+                Ok(Pattern::Sequence(alternatives.pop().unwrap()))
             } else {
-                Ok(Pattern::Sequence(std::mem::take(&mut alternatives[0])))
+                Ok(Pattern::Alternatives(alternatives))
             }
         }
     }
 }
 
 fn append_sequence(seq: &[u64], rules: &HashMap<u64, Pattern>, output: &mut String) -> Result<()> {
-    output.push('(');
     seq.iter()
         .try_for_each(|item| build_regex_recursive(*item, rules, output))?;
-    output.push(')');
 
     Ok(())
 }
@@ -103,6 +101,28 @@ fn append_pattern(
             // remove last pipe
             output.pop();
             output.push(')');
+
+            // optimize a bit for readability
+            if output.ends_with("(a|b)") || output.ends_with("(b|a)") {
+                output.truncate(output.len() - 5);
+                output.push('.');
+            }
+            if output.ends_with("(ba|aa)") {
+                output.truncate(output.len() - 7);
+                output.push_str(".a");
+            }
+            if output.ends_with("(ab|aa)") {
+                output.truncate(output.len() - 7);
+                output.push_str("a.");
+            }
+            if output.ends_with("(ab|bb)") {
+                output.truncate(output.len() - 7);
+                output.push_str(".b");
+            }
+            if output.ends_with("(bb|ba)") {
+                output.truncate(output.len() - 7);
+                output.push_str("b.");
+            }
         }
     };
 
@@ -120,9 +140,15 @@ fn build_regex_recursive(
     }
 }
 
-fn build_regex(rules: &HashMap<u64, Pattern>, start_rule: u64) -> Result<regex_automata::Regex> {
+fn build_regex_str(rules: &HashMap<u64, Pattern>, start_rule: u64) -> Result<String> {
     let mut rx = String::new();
     build_regex_recursive(start_rule, rules, &mut rx)?;
+
+    Ok(rx)
+}
+
+fn build_regex(rules: &HashMap<u64, Pattern>, start_rule: u64) -> Result<regex_automata::Regex> {
+    let rx = build_regex_str(rules, start_rule)?;
 
     RegexBuilder::new()
         .anchored(true)
@@ -161,22 +187,55 @@ fn main() -> Result<()> {
 
     println!("{}", part1);
 
-    /*
-        rules.insert(8, Pattern::Alternatives(vec![vec![42], vec![42, 8]]));
-        rules.insert(11, Pattern::Alternatives(vec![vec![42, 31], vec![42, 11, 31]]));
+    let mut fortytwo = build_regex_str(&rules, 42)?;
+    let mut thirtyone = build_regex_str(&rules, 31)?;
 
-        let regex = build_regex(&rules)?;
+    let rx_fortytwo = RegexBuilder::new()
+        .anchored(true)
+        .allow_invalid_utf8(true)
+        .build(&fortytwo)
+        .map_err(|e| Error::General(format!("Could not build regex: {}", e)))?;
+    let rx_thirtyone = RegexBuilder::new()
+        .anchored(true)
+        .allow_invalid_utf8(true)
+        .build(&thirtyone)
+        .map_err(|e| Error::General(format!("Could not build regex: {}", e)))?;
 
-        let part2 = messages
-            .iter()
-            .filter(|msg| match regex.forward().find(msg.as_bytes()) {
-                None => false,
-                Some(len) => len == msg.len(),
-            })
-            .count();
+    fn match_nested(bytes: &[u8], left: &Regex, right: &Regex, level: u64) -> bool {
+        if level > 0 && bytes.len() == 0 {
+            return true;
+        }
+        if let Some(len1) = right.reverse().rfind(bytes) {
+            if let Some(len2) = left.forward().find(&bytes[0..len1]) {
+                match_nested(&bytes[len2..len1], left, right, level + 1)
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
 
-        println!("{}", part2);
-    */
+    fn match_new_rules(bytes: &[u8], left: &Regex, right: &Regex) -> bool {
+        let mut bytes = bytes;
+        while let Some(len) = left.forward().find(bytes) {
+            bytes = &bytes[len..];
+            if match_nested(bytes, left, right, 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    let part2 = messages
+        .iter()
+        .filter(|msg| {
+            let mut bytes = msg.as_bytes();
+            match_new_rules(bytes, &rx_fortytwo, &rx_thirtyone)
+        })
+        .count();
+
+    println!("{}", part2);
 
     Ok(())
 }
