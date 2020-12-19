@@ -13,7 +13,7 @@ struct Rule {
 enum Pattern {
     Char(char),
     Sequence(Vec<u64>),
-    Alternatives(Vec<Pattern>),
+    Alternatives(Vec<Vec<u64>>),
 }
 
 impl FromStr for Rule {
@@ -64,17 +64,21 @@ impl FromStr for Pattern {
             )?;
 
             if alternatives.len() > 1 {
-                Ok(Pattern::Alternatives(
-                    alternatives
-                        .into_iter()
-                        .map(|seq| Pattern::Sequence(seq))
-                        .collect(),
-                ))
+                Ok(Pattern::Alternatives(alternatives))
             } else {
                 Ok(Pattern::Sequence(std::mem::take(&mut alternatives[0])))
             }
         }
     }
+}
+
+fn append_sequence(seq: &[u64], rules: &HashMap<u64, Pattern>, output: &mut String) -> Result<()> {
+    output.push('(');
+    seq.iter()
+        .try_for_each(|item| build_regex_recursive(*item, rules, output))?;
+    output.push(')');
+
+    Ok(())
 }
 
 fn append_pattern(
@@ -87,15 +91,12 @@ fn append_pattern(
             output.push(*ch);
         }
         Pattern::Sequence(seq) => {
-            output.push('(');
-            seq.iter()
-                .try_for_each(|item| build_regex_recursive(*item, rules, output))?;
-            output.push(')');
+            append_sequence(seq, rules, output)?;
         }
-        Pattern::Alternatives(seq) => {
+        Pattern::Alternatives(alternatives) => {
             output.push('(');
-            seq.iter().try_for_each(|item| -> Result<()> {
-                append_pattern(item, rules, output)?;
+            alternatives.iter().try_for_each(|seq| -> Result<()> {
+                append_sequence(seq, rules, output)?;
                 output.push('|');
                 Ok(())
             })?;
@@ -119,11 +120,9 @@ fn build_regex_recursive(
     }
 }
 
-fn build_regex(rules: &HashMap<u64, Pattern>) -> Result<regex_automata::Regex> {
+fn build_regex(rules: &HashMap<u64, Pattern>, start_rule: u64) -> Result<regex_automata::Regex> {
     let mut rx = String::new();
-    build_regex_recursive(0, rules, &mut rx)?;
-
-    dbg!(&rx);
+    build_regex_recursive(start_rule, rules, &mut rx)?;
 
     RegexBuilder::new()
         .anchored(true)
@@ -141,7 +140,7 @@ fn main() -> Result<()> {
         .next()
         .ok_or_else(|| Error::General("Missing messages".into()))?;
 
-    let rules: HashMap<u64, Pattern> = rules.into_iter().try_fold(
+    let mut rules: HashMap<u64, Pattern> = rules.into_iter().try_fold(
         HashMap::default(),
         |mut map, line| -> Result<HashMap<u64, Pattern>> {
             let rule = Rule::from_str(line)?;
@@ -150,9 +149,7 @@ fn main() -> Result<()> {
         },
     )?;
 
-    dbg!(&rules);
-
-    let regex = build_regex(&rules)?;
+    let regex = build_regex(&rules, 0)?;
 
     let part1 = messages
         .iter()
@@ -163,6 +160,23 @@ fn main() -> Result<()> {
         .count();
 
     println!("{}", part1);
+
+    /*
+        rules.insert(8, Pattern::Alternatives(vec![vec![42], vec![42, 8]]));
+        rules.insert(11, Pattern::Alternatives(vec![vec![42, 31], vec![42, 11, 31]]));
+
+        let regex = build_regex(&rules)?;
+
+        let part2 = messages
+            .iter()
+            .filter(|msg| match regex.forward().find(msg.as_bytes()) {
+                None => false,
+                Some(len) => len == msg.len(),
+            })
+            .count();
+
+        println!("{}", part2);
+    */
 
     Ok(())
 }
